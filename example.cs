@@ -80,6 +80,45 @@ class PeopleCollection : IEnumerable<Person>, IDisposable, ICloneable, IComparab
 {
     private List<Person> people = new List<Person>();
 
+    public Person this[int index]
+    {
+        get => people[index];
+        set => people[index] = value;
+    }
+
+    public int Count => people.Count;
+    public bool IsReadOnly => false;
+
+    public event PropertyChangedEventHandler PropertyChanged;
+
+    protected virtual void OnPropertyChanged(string propertyName)
+    {
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+    }
+
+    public IEnumerator<Person> GetEnumerator()
+    {
+        return people.GetEnumerator();
+    }
+
+    IEnumerator IEnumerable.GetEnumerator()
+    {
+        return GetEnumerator();
+    }
+
+    public object Clone()
+    {
+        PeopleCollection clone = new PeopleCollection();
+        clone.people.AddRange(people.Select(p => (Person)p.Clone()));
+        return clone;
+    }
+
+    public void Dispose()
+    {
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
+
     protected virtual void Dispose(bool disposing)
     {
         if (disposing)
@@ -90,12 +129,12 @@ class PeopleCollection : IEnumerable<Person>, IDisposable, ICloneable, IComparab
         // Dispose unmanaged resources
     }
 
-    public int CompareTo(CustomObject other)
+    public int CompareTo(PeopleCollection other)
     {
         return Count.CompareTo(other.Count);
     }
 
-    public int Compare(CustomObject x, CustomObject y)
+    public int Compare(PeopleCollection x, PeopleCollection y)
     {
         return x.Count.CompareTo(y.Count);
     }
@@ -139,13 +178,12 @@ class PeopleCollection : IEnumerable<Person>, IDisposable, ICloneable, IComparab
     {
         return people.Remove(item);
     }
+}
 
-    public event PropertyChangedEventHandler PropertyChanged;
-
-    protected virtual void OnPropertyChanged(string propertyName)
-    {
-        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-    }
+interface ISerializer
+{
+    void Serialize(Stream serializationStream, object graph);
+    object Deserialize(Stream serializationStream);
 }
 
 class BinaryFormatterSerializer : ISerializer
