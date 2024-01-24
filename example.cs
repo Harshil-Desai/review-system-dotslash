@@ -80,7 +80,65 @@ class PeopleCollection : IEnumerable<Person>, IDisposable, ICloneable, IComparab
 {
     private List<Person> people = new List<Person>();
 
-    // ... (unchanged code)
+    protected virtual void Dispose(bool disposing)
+    {
+        if (disposing)
+        {
+            // Dispose managed resources
+            people.Clear();
+        }
+        // Dispose unmanaged resources
+    }
+
+    public int CompareTo(CustomObject other)
+    {
+        return Count.CompareTo(other.Count);
+    }
+
+    public int Compare(CustomObject x, CustomObject y)
+    {
+        return x.Count.CompareTo(y.Count);
+    }
+
+    public int IndexOf(Person item)
+    {
+        return people.IndexOf(item);
+    }
+
+    public void Insert(int index, Person item)
+    {
+        people.Insert(index, item);
+    }
+
+    public void RemoveAt(int index)
+    {
+        people.RemoveAt(index);
+    }
+
+    public void Add(Person item)
+    {
+        people.Add(item);
+    }
+
+    public void Clear()
+    {
+        people.Clear();
+    }
+
+    public bool Contains(Person item)
+    {
+        return people.Contains(item);
+    }
+
+    public void CopyTo(Person[] array, int arrayIndex)
+    {
+        people.CopyTo(array, arrayIndex);
+    }
+
+    public bool Remove(Person item)
+    {
+        return people.Remove(item);
+    }
 
     public event PropertyChangedEventHandler PropertyChanged;
 
@@ -88,8 +146,6 @@ class PeopleCollection : IEnumerable<Person>, IDisposable, ICloneable, IComparab
     {
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
     }
-
-    // ... (unchanged code)
 }
 
 class BinaryFormatterSerializer : ISerializer
