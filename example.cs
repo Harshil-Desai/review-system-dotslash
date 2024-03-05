@@ -1,267 +1,318 @@
-using System;
-using System.Collections;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.IO;
-using System.Linq;
-using System.Runtime.Serialization;
-using System.Runtime.Serialization.Formatters.Binary;
-
-[Serializable]
-class Person : IComparable<Person>, ICloneable, INotifyPropertyChanged
-{
-    private string firstName;
-    private string lastName;
-    private int age;
-
-    public string FirstName
+  uuid: {
+    type: String,
+    required: true,
+    trim: true,
+    sparse: true,
+  },
+  key: {
+    type: String,
+    required: false,
+    trim: true,
+  },
+  name: {
+    type: String,
+    required: true,
+    trim: true,
+  },
+  location: {
+    type: String,
+    trim: true,
+  },
+  sensorLat: {
+    type: String,
+    trim: true,
+  },
+  ref1Lat: {
+    type: String,
+    trim: true,
+  },
+  ref2Lat: {
+    type: String,
+    trim: true,
+  },
+  sensorLng: {
+    type: String,
+    trim: true,
+  },
+  ref1Lng: {
+    type: String,
+    trim: true,
+  },
+  ref2Lng: {
+    type: String,
+    trim: true,
+  },
+  picture: {
+    type: String,
+    trim: true,
+  },
+  status: {
+    type: String,
+    enum: ['Active', 'Disabled'],
+  },
+  type: {
+    type: String,
+    enum: ['FPL', 'SPOD', 'RAMP', 'FMD'],
+  },
+  orientation: {
+    type: String,
+    trim: true,
+  },
+  isUTCTimeZone: {
+    type: Boolean,
+  },
+  timezone: {
+    type: Number,
+  },
+  createdDate: {
+    type: Date,
+    required: false,
+    default: new Date(),
+  },
+  lastUpdated: {
+    type: Date,
+    required: false,
+    default: new Date(),
+  },
+  createdBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    required: false,
+  },
+  updatedBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    required: false,
+  },
+  isDeleted: {
+    type: Boolean,
+    required: false,
+    default: false,
+  },
+  isFirmwareUpdateRequire: {
+    type: Boolean,
+    required: false,
+    default: false,
+  },
+  sentCommands: [
     {
-        get { return firstName; }
-        set
-        {
-            if (value != firstName)
-            {
-                firstName = value;
-                OnPropertyChanged(nameof(FirstName));
-            }
-        }
-    }
-
-    public string LastName
-    {
-        get { return lastName; }
-        set
-        {
-            if (value != lastName)
-            {
-                lastName = value;
-                OnPropertyChanged(nameof(LastName));
-            }
-        }
-    }
-
-    public int Age
-    {
-        get { return age; }
-        set
-        {
-            if (value != age)
-            {
-                age = value;
-                OnPropertyChanged(nameof(Age));
-            }
-        }
-    }
-
-    public event PropertyChangedEventHandler PropertyChanged;
-
-    protected virtual void OnPropertyChanged(string propertyName)
-    {
-        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-    }
-
-    public int CompareTo(Person other)
-    {
-        return Age.CompareTo(other.Age);
-    }
-
-    public object Clone()
-    {
-        return new Person { FirstName = FirstName, LastName = LastName, Age = Age };
-    }
-
-    public override string ToString()
-    {
-        return $"{FirstName} {LastName}, Age: {Age}";
-    }
-}
-
-class PeopleCollection : IEnumerable<Person>, IDisposable, ICloneable, IComparable<PeopleCollection>, IComparer<PeopleCollection>, IList<Person>
-{
-    private List<Person> people = new List<Person>();
-
-    public Person this[int index]
-    {
-        get => people[index];
-        set => people[index] = value;
-    }
-
-    public int Count => people.Count;
-    public bool IsReadOnly => false;
-
-    public event PropertyChangedEventHandler PropertyChanged;
-
-    protected virtual void OnPropertyChanged(string propertyName)
-    {
-        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-    }
-
-    public IEnumerator<Person> GetEnumerator()
-    {
-        return people.GetEnumerator();
-    }
-
-    IEnumerator IEnumerable.GetEnumerator()
-    {
-        return GetEnumerator();
-    }
-
-    public object Clone()
-    {
-        PeopleCollection clone = new PeopleCollection();
-        clone.people.AddRange(people.Select(p => (Person)p.Clone()));
-        return clone;
-    }
-
-    public void Dispose()
-    {
-        Dispose(true);
-        GC.SuppressFinalize(this);
-    }
-
-    protected virtual void Dispose(bool disposing)
-    {
-        if (disposing)
-        {
-            // Dispose managed resources
-            people.Clear();
-        }
-        // Dispose unmanaged resources
-    }
-
-    public int CompareTo(PeopleCollection other)
-    {
-        return Count.CompareTo(other.Count);
-    }
-
-    public int Compare(PeopleCollection x, PeopleCollection y)
-    {
-        return x.Count.CompareTo(y.Count);
-    }
-
-    public int IndexOf(Person item)
-    {
-        return people.IndexOf(item);
-    }
-
-    public void Insert(int index, Person item)
-    {
-        people.Insert(index, item);
-    }
-
-    public void RemoveAt(int index)
-    {
-        people.RemoveAt(index);
-    }
-
-    public void Add(Person item)
-    {
-        people.Add(item);
-    }
-
-    public void Clear()
-    {
-        people.Clear();
-    }
-
-    public bool Contains(Person item)
-    {
-        return people.Contains(item);
-    }
-
-    public void CopyTo(Person[] array, int arrayIndex)
-    {
-        people.CopyTo(array, arrayIndex);
-    }
-
-    public bool Remove(Person item)
-    {
-        return people.Remove(item);
-    }
-}
-
-interface ISerializer
-{
-    void Serialize(Stream serializationStream, object graph);
-    object Deserialize(Stream serializationStream);
-}
-
-class BinaryFormatterSerializer : ISerializer
-{
-    private readonly IFormatter formatter;
-
-    public BinaryFormatterSerializer()
-    {
-        formatter = new BinaryFormatter();
-    }
-
-    public void Serialize(Stream serializationStream, object graph)
-    {
-        formatter.Serialize(serializationStream, graph);
-    }
-
-    public object Deserialize(Stream serializationStream)
-    {
-        return formatter.Deserialize(serializationStream);
-    }
-}
-
-class Program
-{
-    static void Main()
-    {
-        PeopleCollection peopleCollection = new PeopleCollection();
-
-        // Event handler for property changes in Person objects
-        peopleCollection.PropertyChanged += PeopleCollection_PropertyChanged;
-
-        // Add people to PeopleCollection
-        Person john = new Person { FirstName = "John", LastName = "Doe", Age = 30 };
-        peopleCollection.Add(john);
-
-        // Change a property to trigger the PropertyChanged event
-        john.Age = 31;
-
-        // Display people in PeopleCollection
-        Console.WriteLine("People in PeopleCollection:");
-        foreach (Person person in peopleCollection)
-        {
-            Console.WriteLine(person);
-        }
-
-        // Cloning
-        PeopleCollection clonedCollection = (PeopleCollection)peopleCollection.Clone();
-        Console.WriteLine("\nCloned PeopleCollection:");
-        foreach (Person person in clonedCollection)
-        {
-            Console.WriteLine(person);
-        }
-
-        // Disposing
-        peopleCollection.Dispose();
-
-        // Serialization example
-        ISerializer serializer = new BinaryFormatterSerializer();
-        using (FileStream fileStream = new FileStream("data.dat", FileMode.Create))
-        {
-            serializer.Serialize(fileStream, peopleCollection);
-        }
-
-        // Deserialization example
-        using (FileStream fileStream = new FileStream("data.dat", FileMode.Open))
-        {
-            PeopleCollection deserializedCollection = (PeopleCollection)serializer.Deserialize(fileStream);
-
-            Console.WriteLine("\nDeserialized PeopleCollection:");
-            foreach (Person person in deserializedCollection)
-            {
-                Console.WriteLine(person);
-            }
-        }
-    }
-
-    private static void PeopleCollection_PropertyChanged(object sender, PropertyChangedEventArgs e)
-    {
-        Console.WriteLine($"Property changed: {e.PropertyName}");
-    }
-}
+      command: {
+        type: String,
+        required: true,
+        trim: true,
+      },
+      isResponseReceived: {
+        type: Boolean,
+        required: true,
+      },
+      respondReceivedAt: {
+        type: Date,
+        required: true,
+      },
+      sendAt: {
+        type: Date,
+        required: true,
+      },
+      isCommandSend: {
+        type: Boolean,
+        required: true,
+      },
+    },
+  ],
+  settingCRC: {
+    type: String,
+  },
+  devicesettings: {
+    echemnum: {
+      type: Number,
+    },
+    echem_sensor_settings_data: [
+      {
+        ecmap: {
+          type: Number,
+        },
+        offset: {
+          type: Number,
+        },
+        slope: {
+          type: Number,
+        },
+        aux_b: {
+          type: Number,
+        },
+        act_b: {
+          type: Number,
+        },
+        sen_m: {
+          type: Number,
+        },
+        sen_m_second: {
+          type: Number,
+        },
+      },
+    ],
+    pmnum: {
+      type: Number,
+    },
+    pmtype: {
+      type: Number,
+    },
+    pm_sensor_settings_data: [
+      {
+        offset_PM_1_0: {
+          type: Number,
+        },
+        slope_PM_1_0: {
+          type: Number,
+        },
+        offset_PM_2_5: {
+          type: Number,
+        },
+        slope_PM_2_5: {
+          type: Number,
+        },
+        offset_PM_10: {
+          type: Number,
+        },
+        slope_PM_10: {
+          type: Number,
+        },
+      },
+    ],
+    autorange: {
+      type: Number,
+    },
+    constrain_op: {
+      type: Number,
+    },
+    co2sel: {
+      type: Number,
+    },
+    aux_sensor_data: {
+      aux_offset: {
+        type: Number,
+      },
+      aux_slope: {
+        type: Number,
+      },
+    },
+    meten: {
+      type: Number,
+    },
+    windfilter: {
+      type: Number,
+    },
+    sdrate: {
+      type: Number,
+    },
+    usbmode: {
+      type: Number,
+    },
+    adj: {
+      type: Number,
+    },
+    data_delay: {
+      type: Number,
+    },
+    gpsmode: {
+      type: Number,
+    },
+    protocol: {
+      type: Number,
+    },
+    ratio: {
+      type: Number,
+    },
+    autotime: {
+      type: Number,
+    },
+    cellmode: {
+      type: Number,
+    },
+    serv_adrs: {
+      type: String,
+    },
+    apn: {
+      type: String,
+    },
+    carrier: {
+      type: Number,
+    },
+    customband: {
+      type: String,
+    },
+    sslmode: {
+      type: Number,
+    },
+    tzone: {
+      type: Number,
+    },
+    datatype: {
+      type: Number,
+    },
+    mqttv: {
+      type: Number,
+    },
+    publish: {
+      type: String,
+    },
+    subscribe: {
+      type: String,
+    },
+  },
+  SPODDevicesettings: {
+    data_delay: {
+      type: Number,
+    },
+    stream: {
+      type: Number,
+    },
+    cellmode: {
+      type: Number,
+    },
+    ratio: {
+      type: Number,
+    },
+    gpsmode: {
+      type: Number,
+    },
+    acpower: {
+      type: Number,
+    },
+    autotime: {
+      type: Number,
+    },
+    apn: {
+      type: String,
+    },
+    serv_adrs: {
+      type: String,
+    },
+    protocol: {
+      type: Number,
+    },
+    sslmode: {
+      type: Number,
+    },
+  },
+  temp_settings: {
+    type: String,
+  },
+  temp_settings_crc: {
+    type: String,
+  },
+  temp_settings_whole_packet: {
+    type: String,
+  },
+  temp_settings_whole_packet_crc: {
+    type: String,
+  },
+  isDateChached: {
+    type: Boolean,
+    required: false,
+    default: false,
+  },
+  lastReceivedRecord: {
+    type: Object,
+    required: false,
+    default: true,
+  },
+});
