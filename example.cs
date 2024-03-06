@@ -1,9 +1,8 @@
 using Microsoft.AspNetCore.Mvc;
+using MongoDB.Driver;
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
-using MongoDB.Driver;
 
 namespace YourNamespace.Controllers
 {
@@ -20,31 +19,18 @@ namespace YourNamespace.Controllers
         }
 
         [HttpGet("available-dates")]
-        public async Task<ActionResult<IEnumerable<object>>> GetSPODDataAvailableDates(int deviceId, string requestedTimezone)
+        public async Task<ActionResult<IEnumerable<YourSPODDataModel>>> GetSPODDataAvailableDates(int deviceId, string requestedTimezone)
         {
             try
             {
-                var pipeline = new[]
+                var pipeline = new BsonDocument[]
                 {
-                    PipelineStageDefinitionBuilder.Match<YourSPODDataModel>(Builders<YourSPODDataModel>.Filter.Eq("id", deviceId)),
-                    PipelineStageDefinitionBuilder.Group(
-                        new BsonDocument
-                        {
-                            { "_id", new BsonDocument
-                                {
-                                    { "month", new BsonDocument("$month", new BsonDocument("date", "$date").Add("timezone", requestedTimezone)) },
-                                    { "day", new BsonDocument("$dayOfMonth", new BsonDocument("date", "$date").Add("timezone", requestedTimezone))) },
-                                    { "year", new BsonDocument("$year", new BsonDocument("date", "$date").Add("timezone", requestedTimezone))) }
-                                }
-                            },
-                            { "count", new BsonDocument("$sum", 1) },
-                            { "date", new BsonDocument("$max", "$date") }
-                        }
-                    ),
-                    PipelineStageDefinitionBuilder.Sort(new BsonDocument("date", 1))
+                    BsonDocument.Parse("{ $match: { id: " + deviceId + " } }"),
+                    BsonDocument.Parse("{ $group: { _id: { month: { $month: { date: '$date', timezone: '" + requestedTimezone + "' } }, day: { $dayOfMonth: { date: '$date', timezone: '" + requestedTimezone + "' } }, year: { $year: { date: '$date', timezone: '" + requestedTimezone + "' } } }, count: { $sum: 1 }, date: { $max: '$date' } } }"),
+                    BsonDocument.Parse("{ $sort: { date: 1 } }")
                 };
 
-                var logs = await _spodDataCollection.AggregateAsync<object>(pipeline);
+                var logs = await _spodDataCollection.AggregateAsync<YourSPODDataModel>(pipeline);
                 return Ok(logs.ToList());
             }
             catch (Exception ex)
